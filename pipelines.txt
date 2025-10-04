@@ -1,0 +1,73 @@
+gst-launch-1.0 \
+    udpsrc port=5600 buffer-size=262144 \
+      caps="application/x-rtp,media=video,clock-rate=90000,payload=97,encoding-name=H265" ! \
+    queue leaky=2 max-size-buffers=96 max-size-time=0 max-size-bytes=0 ! \
+    rtph265depay ! \
+    h265parse config-interval=-1 disable-passthrough=true ! \
+    mppvideodec ! \
+    queue leaky=2 max-size-buffers=8 max-size-time=0 max-size-bytes=0 ! \
+    queue leaky=2 max-size-buffers=8 max-size-time=0 max-size-bytes=0 ! \
+    kmssink plane-id=76 sync=false qos=true max-lateness=20000000
+
+
+
+    modetest -M rockchip -s 111@68:1920x1080-144
+    modetest -M rockchip -s 111@68:1920x1080-60
+
+    modetest -M rockchip -P 76@68:1920x1080+0+0@AR24
+
+    taskset -c 2-3
+
+
+    taskset -c 2-3 gst-launch-1.0 \
+    udpsrc port=5600 buffer-size=262144 \
+      caps="application/x-rtp,media=video,clock-rate=90000,payload=97,encoding-name=H265" ! \
+    queue leaky=2 max-size-buffers=96 max-size-time=0 max-size-bytes=0 ! \
+    rtph265depay ! \
+    h265parse config-interval=-1 disable-passthrough=true ! \
+ mppvideodec ! queue max-size-buffers=4 max-size-bytes=0 max-size-time=0 leaky=downstream ! \
+    video/x-raw,format=NV12 ! kmssink sync=true
+
+    
+    taskset -c 2-3 gst-launch-1.0 \
+    udpsrc port=5600 buffer-size=262144 \
+      caps="application/x-rtp,media=video,clock-rate=90000,payload=97,encoding-name=H265" ! \
+    queue leaky=2 max-size-buffers=96 max-size-time=0 max-size-bytes=0 ! \
+    rtph265depay ! \
+    h265parse config-interval=-1 disable-passthrough=true ! \
+ mppvideodec ! queue max-size-buffers=4 max-size-bytes=0 max-size-time=0 leaky=downstream ! \
+    video/x-raw,format=NV12 ! kmssink plane-id=76 render-rectangle="<0,0,1920,1080>" sync=true
+    
+kmssink plane-id=76 render-rectangle="<0,0,1920,1080>" sync=true
+
+
+! video/x-raw,format=NV12 ! kmssink plane-id=76 can-scale=false \
+  render-rectangle="<0,0,1920,1080>" sync=true
+
+  
+      taskset -c 2-3 gst-launch-1.0 \
+    udpsrc port=5600 buffer-size=262144 \
+      caps="application/x-rtp,media=video,clock-rate=90000,payload=97,encoding-name=H265" ! \
+    queue leaky=2 max-size-buffers=96 max-size-time=0 max-size-bytes=0 ! \
+    rtpjitterbuffer latency=4 drop-on-latency=true do-lost=true ! \
+    rtph265depay ! \
+    h265parse config-interval=-1 disable-passthrough=true ! \
+ mppvideodec ! queue max-size-buffers=4 max-size-bytes=0 max-size-time=0 leaky=downstream ! \
+     video/x-raw,format=NV12 ! kmssink plane-id=76 can-scale=false \
+  render-rectangle="<0,0,1920,1080>" sync=true
+  
+
+
+    gst-launch-1.0 \
+    udpsrc port=5600 \
+      caps="application/x-rtp,media=video,clock-rate=90000,payload=97,encoding-name=H265" ! \
+    rtph265depay ! \
+    h265parse config-interval=-1 disable-passthrough=true ! \
+    mppvideodec ! \
+    queue leaky=2 max-size-buffers=8 max-size-time=0 max-size-bytes=0 ! \
+    kmssink plane-id=76 sync=false qos=true max-lateness=20000000
+    
+    
+    
+    
+
