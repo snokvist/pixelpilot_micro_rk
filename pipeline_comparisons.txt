@@ -1,0 +1,28 @@
+• The binary builds a video-only GStreamer chain when launched with --no-audio --gst-udpsrc; translating the configured elements gives:
+
+  udpsrc name=udp_udpsrc port=5600 buffer-size=262144 caps="application/x-rtp,media=video,payload=97,clock-rate=90000,encoding-name=H265" !
+  rtpjitterbuffer name=video_jitter latency=8 drop-on-late=true do-lost=true !
+  queue name=video_queue_pre leaky=2 max-size-buffers=96 max-size-time=0 max-size-bytes=0 !
+  rtph265depay name=video_depay !
+  h265parse name=video_parser config-interval=-1 disable-passthrough=true stream-format=byte-stream alignment=au !
+  capsfilter name=video_capsfilter caps="video/x-h265,stream-format=byte-stream,alignment=au" !
+  queue name=video_queue_post leaky=2 max-size-buffers=8 max-size-time=0 max-size-bytes=0 !
+  appsink name=video_appsink drop=true max-buffers=4 sync=false
+
+  - udpsrc is selected whenever cfg->use_gst_udpsrc is true, inheriting defaults like UDP port 5600 and payload type 97/latency 8 ms (create_udp_source and
+    create_udp_udpsrc, src/pipeline.c:127-135, src/pipeline.c:51-70; defaults in cfg_defaults, src/config.c:54-66).
+  - The RTP caps for the source (and later appsink) constrain the stream to RTP/H265 (build_appsrc_caps, src/pipeline.c:41-48; gst_app_sink_set_caps, src/
+    pipeline.c:462-467).
+  - With --no-audio, the pipeline takes the “video-only” branch, inserting rtpjitterbuffer configured for the latency target and omitting any audio elements
+    (pipeline_start, src/pipeline.c:763-794).
+  - The video branch elements and their queue parameters come directly from build_video_branch, which sets the leaky queues, forces byte-stream H.265 caps, and
+    configures the dropping appsink before linking them in order (src/pipeline.c:428-477).
+
+
+Pixelpilot_rk
+
+udpsrc port=<PORT> caps="application/x-rtp, media=(string)video, encoding-name=(string)H265, clock-rate=(int)90000" ! \
+  rtph265depay ! \
+  h265parse config-interval=-1 ! \
+  video/x-h265, stream-format="byte-stream" ! \
+  appsink drop=true name=out_appsink
